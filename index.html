@@ -27,8 +27,8 @@
   .archive-card {
     position: relative;
     width: 100%;
-    max-width: 500px;
-    background: linear-gradient(145deg, rgba(18, 22, 38, 0.92), rgba(10, 12, 22, 0.98));
+    max-width: 520px;
+    background: linear-gradient(145deg, rgba(18, 22, 38, 0.95), rgba(10, 12, 22, 0.98));
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(139, 92, 246, 0.35);
@@ -136,41 +136,25 @@
     background: rgba(6, 8, 15, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 18px;
-    padding: 16px;
+    padding: 12px;
   }
 
   .media-container {
     width: 100%;
-    height: 230px;
+    height: 320px;
     border-radius: 14px;
     overflow: hidden;
-    margin-bottom: 14px;
     background: #000;
     display: flex;
     justify-content: center;
     align-items: center;
   }
 
-  .media-container img {
+  iframe {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-  }
-
-  h4#media-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 16px;
-    color: #f8fafc;
-    margin: 0 0 8px 0;
-  }
-
-  p#media-desc {
-    font-size: 13px;
-    color: #94a3b8;
-    line-height: 1.6;
-    margin: 0 0 16px 0;
-    max-height: 90px;
-    overflow-y: auto;
+    border: none;
+    border-radius: 14px;
   }
 
   .alliance-glaze {
@@ -216,8 +200,6 @@
     <div class="media-container" id="media-slot">
       <div style="color:#94a3b8; font-size:12px;">Select date to load...</div>
     </div>
-    <h4 id="media-title">Cosmic Archive View</h4>
-    <p id="media-desc">Pick any date between June 16, 1995 and today to retrieve NASA's astronomical entry.</p>
   </div>
 
   <div class="alliance-glaze">
@@ -226,50 +208,23 @@
 </div>
 
 <script>
-  const apiKey = "QG50ZrxSniwaY1mcu7I8DfDtwb8qrDCDT46uFjqJ";
-  
-  // Set accurate date bounds
   const todayStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById('bday-input');
   dateInput.max = todayStr;
-  dateInput.value = "2020-01-01"; // Default reliable date
+  dateInput.value = "2020-01-01"; // Default date
 
-  async function triggerCosmicScan() {
+  function triggerCosmicScan() {
     const dateVal = dateInput.value;
     if (!dateVal) return;
 
     const mediaSlot = document.getElementById('media-slot');
-    const titleElem = document.getElementById('media-title');
-    const descElem = document.getElementById('media-desc');
+    const [y, m, d] = dateVal.split('-');
+    
+    // Convert YYYY-MM-DD to YYMMDD format used by NASA APOD pages
+    const apodPage = `https://apod.nasa.gov/apod/ap${y.slice(2)}${m}${d}.html`;
 
-    titleElem.innerText = "Scanning Deep Space Archives...";
-    descElem.innerText = "Retrieving observation data for " + dateVal + "...";
-
-    const targetUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}`;
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-
-    try {
-      let response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error("Proxy error");
-      let data = await response.json();
-
-      let imgUrl = data.url || data.hdurl || data.thumbnail_url;
-      if (imgUrl && imgUrl.startsWith('http://')) {
-        imgUrl = imgUrl.replace('http://', 'https://');
-      }
-
-      mediaSlot.innerHTML = `<img src="${imgUrl}" alt="${data.title}">`;
-      titleElem.innerText = `${data.title || 'NASA Discovery'} (${dateVal})`;
-      descElem.innerText = data.explanation || "Official NASA astronomical photograph cataloged for this date.";
-
-    } catch (err) {
-      // Direct NASA Archive fallback link if proxy/server times out
-      const [y, m, d] = dateVal.split('-');
-      const pageUrl = `https://apod.nasa.gov/apod/ap${y.slice(2)}${m}${d}.html`;
-      titleElem.innerText = `NASA Archive Entry (${dateVal})`;
-      descElem.innerText = "NASA's live API response was bypassed. You can view the original archival entry page directly below:";
-      mediaSlot.innerHTML = `<a href="${pageUrl}" target="_blank" style="color:#a78bfa; font-family:'Space Grotesk'; font-size:14px; text-decoration:underline;">Open NASA Entry for ${dateVal} ↗</a>`;
-    }
+    // Render the NASA archival page inside the widget card container directly
+    mediaSlot.innerHTML = `<iframe src="${apodPage}" title="NASA APOD View"></iframe>`;
   }
 
   window.addEventListener('DOMContentLoaded', triggerCosmicScan);
