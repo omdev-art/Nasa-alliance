@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Omexla x NASA Cosmic Archive</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    padding: 12px;
+    background: #030408;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .archive-card {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: linear-gradient(145deg, rgba(18, 22, 38, 0.9), rgba(10, 12, 22, 0.98));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 0 35px rgba(139, 92, 246, 0.2);
+    overflow: hidden;
+  }
+
+  .archive-card::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    left: -60px;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.35), transparent 70%);
+    pointer-events: none;
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    padding: 6px 14px;
+    border-radius: 30px;
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    background-color: #a78bfa;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #a78bfa;
+    animation: smooth-pulse 2s infinite ease-in-out;
+  }
+
+  .badge-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b5fd;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .date-box-wrapper {
+    flex: 1;
+    position: relative;
+    background: rgba(8, 10, 18, 0.9);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 14px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    transition: all 0.25s ease;
+  }
+
+  .date-box-wrapper:focus-within {
+    border-color: #a78bfa;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.45);
+  }
+
+  input[type="date"] {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #f8fafc;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    outline: none;
+    padding: 12px 0;
+    color-scheme: dark;
+    cursor: pointer;
+  }
+
+  .scan-btn {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    border: none;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0 24px;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.4);
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .scan-btn:hover {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.6);
+  }
+
+  .scan-btn:active {
+    transform: translateY(1px);
+  }
+
+  .result-frame {
+    position: relative;
+    background: rgba(6, 8, 15, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    padding: 16px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .result-frame.updating {
+    opacity: 0.3;
+    transform: scale(0.98);
+  }
+
+  .media-container {
+    width: 100%;
+    height: 230px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    background: #000;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .media-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .media-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  h4#media-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 16px;
+    color: #f8fafc;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.2px;
+  }
+
+  p#media-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.6;
+    margin: 0 0 16px 0;
+    max-height: 90px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  p#media-desc::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  p#media-desc::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+    border-radius: 4px;
+  }
+
+  .alliance-glaze {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    background: linear-gradient(135deg, #c084fc, #60a5fa, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.2px;
+  }
+
+  @keyframes smooth-pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+</style>
+</head>
+<body>
+
+<div class="archive-card">
+  <div class="card-top">
+    <div class="badge">
+      <div class="pulse-dot"></div>
+      <span class="badge-text">NASA Official Live Feed</span>
+    </div>
+  </div>
+
+  <div class="input-section">
+    <div class="input-row">
+      <div class="date-box-wrapper">
+        <input type="date" id="bday-input" min="1995-06-16">
+      </div>
+      <button class="scan-btn" onclick="triggerCosmicScan()">Scan</button>
+    </div>
+  </div>
+
+  <div class="result-frame" id="result-box">
+    <div class="media-container" id="media-slot">
+      <div style="color:#94a3b8; font-size:12px;">Initializing Stream...</div>
+    </div>
+    <h4 id="media-title">Connecting to NASA Archive...</h4>
+    <p id="media-desc">Select any date between June 16, 1995 and today to stream NASA's official photo for that day.</p>
+  </div>
+
+  <div class="alliance-glaze">
+    Powered by the formidable alliance between Omexla's next-generation digital interface and NASA's legendary space exploration archives to bring you unmatched astronomical precision.
+  </div>
+</div>
+
+<script>
+  const apiKey = "QG50ZrxSniwaY1mcu7I8DfDtwb8qrDCDT46uFjqJ";
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  const dateInput = document.getElementById('bday-input');
+  dateInput.max = todayStr;
+  dateInput.value = "2008-01-01";
+
+  async function triggerCosmicScan() {
+    const dateVal = dateInput.value;
+    if (!dateVal) return;
+
+    const resultBox = document.getElementById('result-box');
+    const mediaSlot = document.getElementById('media-slot');
+    const titleElem = document.getElementById('media-title');
+    const descElem = document.getElementById('media-desc');
+
+    resultBox.classList.add('updating');
+    titleElem.innerText = "Querying NASA Archives...";
+    descElem.innerText = "Fetching photograph details...";
+
+    const apiUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}&thumbs=true`;
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`Server returned status ${response.status}`);
+      }
+      const data = await response.json();
+
+      let mediaUrl = data.url || data.hdurl || data.thumbnail_url;
+      if (mediaUrl && mediaUrl.startsWith('http://')) {
+        mediaUrl = mediaUrl.replace('http://', 'https://');
+      }
+
+      if (data.media_type === 'video') {
+        if (data.thumbnail_url) {
+          let thumb = data.thumbnail_url.replace('http://', 'https://');
+          mediaSlot.innerHTML = `<img src="${thumb}" alt="${data.title}">`;
+        } else {
+          mediaSlot.innerHTML = `<iframe src="${mediaUrl}" allowfullscreen></iframe>`;
+        }
+      } else {
+        mediaSlot.innerHTML = `<img src="${mediaUrl}" alt="${data.title}">`;
+      }
+
+      titleElem.innerText = `${data.title} (${dateVal})`;
+      descElem.innerText = data.explanation || "No description cataloged for this date.";
+
+    } catch (err) {
+      titleElem.innerText = "Fetch Error";
+      descElem.innerText = "Failed to load data for this date. Check that your selected date is between 1995-06-16 and today.";
+    }
+
+    setTimeout(() => {
+      resultBox.classList.remove('updating');
+    }, 200);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    triggerCosmicScan();
+  });
+</script>
+
+</body>
+</html>
