@@ -28,7 +28,7 @@
     position: relative;
     width: 100%;
     max-width: 500px;
-    background: linear-gradient(145deg, rgba(18, 22, 38, 0.9), rgba(10, 12, 22, 0.98));
+    background: linear-gradient(145deg, rgba(18, 22, 38, 0.92), rgba(10, 12, 22, 0.98));
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(139, 92, 246, 0.35);
@@ -199,14 +199,14 @@
   <div class="card-top">
     <div class="badge">
       <div class="pulse-dot"></div>
-      <span class="badge-text">NASA WP Live Feed</span>
+      <span class="badge-text">NASA Official Feed</span>
     </div>
   </div>
 
   <div class="input-section">
     <div class="input-row">
       <div class="date-box-wrapper">
-        <input type="date" id="bday-input">
+        <input type="date" id="bday-input" min="1995-06-16">
       </div>
       <button class="scan-btn" onclick="triggerCosmicScan()">Scan</button>
     </div>
@@ -214,10 +214,10 @@
 
   <div class="result-frame">
     <div class="media-container" id="media-slot">
-      <div style="color:#94a3b8; font-size:12px;">Initializing...</div>
+      <div style="color:#94a3b8; font-size:12px;">Select date to load...</div>
     </div>
     <h4 id="media-title">Cosmic Archive View</h4>
-    <p id="media-desc">Pick any date to retrieve NASA's official astronomy picture.</p>
+    <p id="media-desc">Pick any date between June 16, 1995 and today to retrieve NASA's astronomical entry.</p>
   </div>
 
   <div class="alliance-glaze">
@@ -227,8 +227,12 @@
 
 <script>
   const apiKey = "QG50ZrxSniwaY1mcu7I8DfDtwb8qrDCDT46uFjqJ";
+  
+  // Set accurate date bounds
+  const todayStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById('bday-input');
-  dateInput.value = "2024-01-01";
+  dateInput.max = todayStr;
+  dateInput.value = "2020-01-01"; // Default reliable date
 
   async function triggerCosmicScan() {
     const dateVal = dateInput.value;
@@ -238,47 +242,34 @@
     const titleElem = document.getElementById('media-title');
     const descElem = document.getElementById('media-desc');
 
-    titleElem.innerText = "Querying NASA Archives...";
-    descElem.innerText = "Connecting to NASA's new infrastructure...";
+    titleElem.innerText = "Scanning Deep Space Archives...";
+    descElem.innerText = "Retrieving observation data for " + dateVal + "...";
 
-    // Try primary legacy endpoint first with user key, then fallback to NASA's new WordPress API
+    const targetUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
     try {
-      let res = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}`);
-      if (res.ok) {
-        let data = await res.json();
-        renderData(data.title, data.explanation, data.url, dateVal);
-        return;
+      let response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error("Proxy error");
+      let data = await response.json();
+
+      let imgUrl = data.url || data.hdurl || data.thumbnail_url;
+      if (imgUrl && imgUrl.startsWith('http://')) {
+        imgUrl = imgUrl.replace('http://', 'https://');
       }
-    } catch (e) {}
 
-    // Fallback: NASA's modern WordPress REST API
-    try {
-      let wpRes = await fetch(`https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=1&search=${dateVal}`);
-      if (wpRes.ok) {
-        let wpData = await wpRes.json();
-        if (wpData && wpData.length > 0) {
-          let item = wpData[0];
-          let cleanTitle = item.title ? item.title.rendered : "NASA Cosmic Discovery";
-          let cleanDesc = item.content ? item.content.rendered.replace(/<[^>]*>?/gm, '') : "NASA Observation";
-          let imgUrl = item.featured_media_src_url || "https://apod.nasa.gov/apod/image/2401/OrionNadir_Hubble_1080.jpg";
-          renderData(cleanTitle, cleanDesc, imgUrl, dateVal);
-          return;
-        }
-      }
-    } catch (e) {}
+      mediaSlot.innerHTML = `<img src="${imgUrl}" alt="${data.title}">`;
+      titleElem.innerText = `${data.title || 'NASA Discovery'} (${dateVal})`;
+      descElem.innerText = data.explanation || "Official NASA astronomical photograph cataloged for this date.";
 
-    // Backup Direct NASA APOD Page link if API server timeouts occur
-    titleElem.innerText = `NASA Entry for ${dateVal}`;
-    descElem.innerText = "NASA's API servers are undergoing backend maintenance. Click below to view the official archive directly:";
-    const [y, m, d] = dateVal.split('-');
-    const pageUrl = `https://apod.nasa.gov/apod/ap${y.slice(2)}${m}${d}.html`;
-    mediaSlot.innerHTML = `<a href="${pageUrl}" target="_blank" style="color:#a78bfa; font-size:14px; text-decoration:underline;">View Official APOD Page ↗</a>`;
-  }
-
-  function renderData(title, desc, url, dateStr) {
-    document.getElementById('media-title').innerText = `${title} (${dateStr})`;
-    document.getElementById('media-desc').innerText = desc;
-    document.getElementById('media-slot').innerHTML = `<img src="${url}" alt="${title}">`;
+    } catch (err) {
+      // Direct NASA Archive fallback link if proxy/server times out
+      const [y, m, d] = dateVal.split('-');
+      const pageUrl = `https://apod.nasa.gov/apod/ap${y.slice(2)}${m}${d}.html`;
+      titleElem.innerText = `NASA Archive Entry (${dateVal})`;
+      descElem.innerText = "NASA's live API response was bypassed. You can view the original archival entry page directly below:";
+      mediaSlot.innerHTML = `<a href="${pageUrl}" target="_blank" style="color:#a78bfa; font-family:'Space Grotesk'; font-size:14px; text-decoration:underline;">Open NASA Entry for ${dateVal} ↗</a>`;
+    }
   }
 
   window.addEventListener('DOMContentLoaded', triggerCosmicScan);
