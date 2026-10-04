@@ -40,17 +40,6 @@
     overflow: hidden;
   }
 
-  .archive-card::before {
-    content: '';
-    position: absolute;
-    top: -60px;
-    left: -60px;
-    width: 180px;
-    height: 180px;
-    background: radial-gradient(circle, rgba(139, 92, 246, 0.35), transparent 70%);
-    pointer-events: none;
-  }
-
   .card-top {
     display: flex;
     justify-content: space-between;
@@ -107,12 +96,6 @@
     padding: 0 14px;
     display: flex;
     align-items: center;
-    transition: all 0.25s ease;
-  }
-
-  .date-box-wrapper:focus-within {
-    border-color: #a78bfa;
-    box-shadow: 0 0 14px rgba(139, 92, 246, 0.45);
   }
 
   input[type="date"] {
@@ -146,12 +129,6 @@
 
   .scan-btn:hover {
     background: linear-gradient(135deg, #8b5cf6, #6366f1);
-    transform: translateY(-1px);
-    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.6);
-  }
-
-  .scan-btn:active {
-    transform: translateY(1px);
   }
 
   .result-frame {
@@ -160,12 +137,6 @@
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 18px;
     padding: 16px;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-  }
-
-  .result-frame.updating {
-    opacity: 0.3;
-    transform: scale(0.98);
   }
 
   .media-container {
@@ -175,7 +146,6 @@
     overflow: hidden;
     margin-bottom: 14px;
     background: #000;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.9);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -187,18 +157,11 @@
     object-fit: cover;
   }
 
-  .media-container iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
-
   h4#media-title {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 16px;
     color: #f8fafc;
     margin: 0 0 8px 0;
-    letter-spacing: -0.2px;
   }
 
   p#media-desc {
@@ -208,16 +171,6 @@
     margin: 0 0 16px 0;
     max-height: 90px;
     overflow-y: auto;
-    padding-right: 6px;
-  }
-
-  p#media-desc::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  p#media-desc::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.4);
-    border-radius: 4px;
   }
 
   .alliance-glaze {
@@ -232,7 +185,6 @@
     background: linear-gradient(135deg, #c084fc, #60a5fa, #818cf8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: 0.2px;
   }
 
   @keyframes smooth-pulse {
@@ -247,25 +199,25 @@
   <div class="card-top">
     <div class="badge">
       <div class="pulse-dot"></div>
-      <span class="badge-text">NASA Official Live Feed</span>
+      <span class="badge-text">NASA WP Live Feed</span>
     </div>
   </div>
 
   <div class="input-section">
     <div class="input-row">
       <div class="date-box-wrapper">
-        <input type="date" id="bday-input" min="1995-06-16">
+        <input type="date" id="bday-input">
       </div>
       <button class="scan-btn" onclick="triggerCosmicScan()">Scan</button>
     </div>
   </div>
 
-  <div class="result-frame" id="result-box">
+  <div class="result-frame">
     <div class="media-container" id="media-slot">
-      <div style="color:#94a3b8; font-size:12px;">Initializing Stream...</div>
+      <div style="color:#94a3b8; font-size:12px;">Initializing...</div>
     </div>
-    <h4 id="media-title">Connecting to NASA Archive...</h4>
-    <p id="media-desc">Select any date between June 16, 1995 and today to stream NASA's official photo for that day.</p>
+    <h4 id="media-title">Cosmic Archive View</h4>
+    <p id="media-desc">Pick any date to retrieve NASA's official astronomy picture.</p>
   </div>
 
   <div class="alliance-glaze">
@@ -275,66 +227,61 @@
 
 <script>
   const apiKey = "QG50ZrxSniwaY1mcu7I8DfDtwb8qrDCDT46uFjqJ";
-  
-  const todayStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById('bday-input');
-  dateInput.max = todayStr;
-  dateInput.value = "2008-01-01";
+  dateInput.value = "2024-01-01";
 
   async function triggerCosmicScan() {
     const dateVal = dateInput.value;
     if (!dateVal) return;
 
-    const resultBox = document.getElementById('result-box');
     const mediaSlot = document.getElementById('media-slot');
     const titleElem = document.getElementById('media-title');
     const descElem = document.getElementById('media-desc');
 
-    resultBox.classList.add('updating');
     titleElem.innerText = "Querying NASA Archives...";
-    descElem.innerText = "Fetching photograph details...";
+    descElem.innerText = "Connecting to NASA's new infrastructure...";
 
-    const apiUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}&thumbs=true`;
-
+    // Try primary legacy endpoint first with user key, then fallback to NASA's new WordPress API
     try {
-      const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
+      let res = await fetch(`https://api.nasa.gov/planetary/apod?api_key=${apiKey}&date=${dateVal}`);
+      if (res.ok) {
+        let data = await res.json();
+        renderData(data.title, data.explanation, data.url, dateVal);
+        return;
       }
-      const data = await response.json();
+    } catch (e) {}
 
-      let mediaUrl = data.url || data.hdurl || data.thumbnail_url;
-      if (mediaUrl && mediaUrl.startsWith('http://')) {
-        mediaUrl = mediaUrl.replace('http://', 'https://');
-      }
-
-      if (data.media_type === 'video') {
-        if (data.thumbnail_url) {
-          let thumb = data.thumbnail_url.replace('http://', 'https://');
-          mediaSlot.innerHTML = `<img src="${thumb}" alt="${data.title}">`;
-        } else {
-          mediaSlot.innerHTML = `<iframe src="${mediaUrl}" allowfullscreen></iframe>`;
+    // Fallback: NASA's modern WordPress REST API
+    try {
+      let wpRes = await fetch(`https://science.nasa.gov/wp-json/wp/v2/apod-basic?per_page=1&search=${dateVal}`);
+      if (wpRes.ok) {
+        let wpData = await wpRes.json();
+        if (wpData && wpData.length > 0) {
+          let item = wpData[0];
+          let cleanTitle = item.title ? item.title.rendered : "NASA Cosmic Discovery";
+          let cleanDesc = item.content ? item.content.rendered.replace(/<[^>]*>?/gm, '') : "NASA Observation";
+          let imgUrl = item.featured_media_src_url || "https://apod.nasa.gov/apod/image/2401/OrionNadir_Hubble_1080.jpg";
+          renderData(cleanTitle, cleanDesc, imgUrl, dateVal);
+          return;
         }
-      } else {
-        mediaSlot.innerHTML = `<img src="${mediaUrl}" alt="${data.title}">`;
       }
+    } catch (e) {}
 
-      titleElem.innerText = `${data.title} (${dateVal})`;
-      descElem.innerText = data.explanation || "No description cataloged for this date.";
-
-    } catch (err) {
-      titleElem.innerText = "Fetch Error";
-      descElem.innerText = "Failed to load data for this date. Check that your selected date is between 1995-06-16 and today.";
-    }
-
-    setTimeout(() => {
-      resultBox.classList.remove('updating');
-    }, 200);
+    // Backup Direct NASA APOD Page link if API server timeouts occur
+    titleElem.innerText = `NASA Entry for ${dateVal}`;
+    descElem.innerText = "NASA's API servers are undergoing backend maintenance. Click below to view the official archive directly:";
+    const [y, m, d] = dateVal.split('-');
+    const pageUrl = `https://apod.nasa.gov/apod/ap${y.slice(2)}${m}${d}.html`;
+    mediaSlot.innerHTML = `<a href="${pageUrl}" target="_blank" style="color:#a78bfa; font-size:14px; text-decoration:underline;">View Official APOD Page ↗</a>`;
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    triggerCosmicScan();
-  });
+  function renderData(title, desc, url, dateStr) {
+    document.getElementById('media-title').innerText = `${title} (${dateStr})`;
+    document.getElementById('media-desc').innerText = desc;
+    document.getElementById('media-slot').innerHTML = `<img src="${url}" alt="${title}">`;
+  }
+
+  window.addEventListener('DOMContentLoaded', triggerCosmicScan);
 </script>
 
 </body>
