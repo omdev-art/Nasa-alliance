@@ -307,8 +307,10 @@
 </div>
 
 <script>
+  const API_KEY = "QG50ZrxSniwaY1mcu7I8DfDtwb8qrDCDT46uFjqJ";
   const MIN_DATE = "1995-06-16";
   const todayDate = new Date().toISOString().split('T')[0];
+  
   const datePicker = document.getElementById('date-input');
   datePicker.max = todayDate;
   datePicker.value = "2020-01-01"; 
@@ -338,57 +340,38 @@
     dateElem.innerText = selectedDate;
     descElem.innerText = "Establishing secure connection to astronomical servers...";
 
-    // Multiple redundant API endpoints (bypasses NASA DEMO_KEY blocks)
-    const endpoints = [
-      `https://raw.githubusercontent.com/nasa/apod-api/master/data/${selectedDate}.json`,
-      `https://api.nasa.gov/planetary/apod?api_key=g3jC3Wf3DTh1r30hW04oYk8yT8m1O3u1I1h3n3u3&date=${selectedDate}`,
-      `https://corsproxy.io/?https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=${selectedDate}`
-    ];
+    const targetUrl = `https://api.nasa.gov/planetary/apod?api_key=${API_KEY}&date=${selectedDate}`;
 
-    let data = null;
-
-    // Try fetching via unthrottled proxies
-    for (let url of endpoints) {
-      try {
-        let res = await fetch(url);
-        if (res.ok) {
-          data = await res.json();
-          if (data && (data.url || data.hdurl)) break;
-        }
-      } catch (e) {
-        continue;
+    try {
+      let response = await fetch(targetUrl);
+      
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
       }
-    }
 
-    // Direct fallback fetcher using allorigins if direct endpoints fail
-    if (!data) {
-      try {
-        let fallbackUrl = `https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY&date=${selectedDate}`;
-        let res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(fallbackUrl)}`);
-        let wrapper = await res.json();
-        data = JSON.parse(wrapper.contents);
-      } catch (e) {}
-    }
+      let data = await response.json();
 
-    if (data && (data.url || data.hdurl)) {
       let mediaUrl = data.hdurl || data.url;
       
       if (data.media_type === "video") {
         viewport.innerHTML = `<iframe class="video-frame" src="${data.url}" allowfullscreen></iframe>`;
-      } else {
+      } else if (mediaUrl) {
         if (mediaUrl.startsWith('http://')) {
           mediaUrl = mediaUrl.replace('http://', 'https://');
         }
         viewport.innerHTML = `<img class="media-element" src="${mediaUrl}" alt="${data.title}">`;
+      } else {
+        throw new Error("Media link undefined in payload");
       }
 
       titleElem.innerText = data.title || "Cataloged Astronomical Observation";
-      descElem.innerText = data.explanation || "Official NASA observation recorded for this date.";
-    } else {
-      showError(`FETCH ERROR: Unable to load data for ${selectedDate}. Please try another date or check back in a few moments.`);
-      viewport.innerHTML = `<div style="color: var(--text-muted); font-size: 12px; font-family: 'JetBrains Mono';">MEDIA UNAVAILABLE</div>`;
-      titleElem.innerText = "Fetch Error";
-      descElem.innerText = "The connection timed out while querying the database.";
+      descElem.innerText = data.explanation || "No explanation text cataloged for this specific observation date.";
+
+    } catch (err) {
+      showError(`ARCHIVE ERROR: Unable to retrieve data for ${selectedDate}. Verify API key permissions or try another date.`);
+      viewport.innerHTML = `<div style="color: var(--text-muted); font-size: 12px; font-family: 'JetBrains Mono';">RETRIEVAL FAILED</div>`;
+      titleElem.innerText = "Error Occurred";
+      descElem.innerText = "Failed to fetch response from NASA telemetry servers.";
     }
   }
 
